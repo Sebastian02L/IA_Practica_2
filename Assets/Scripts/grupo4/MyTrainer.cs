@@ -59,8 +59,10 @@ namespace Grupo4
 
         public void DoStep(bool train)
         {
-            CellInfo agentCell = QMind.Utils.MoveAgent(1, AgentPosition, _worldInfo);
-            AgentPosition = agentCell;
+            //CellInfo agentCell = QMind.Utils.MoveAgent(1, AgentPosition, _worldInfo);
+            //AgentPosition = agentCell;
+
+            //OnEpisodeStarted?.Invoke(this, EventArgs.Empty);
 
             CellInfo otherCell = QMind.Utils.MoveOther(_navigationAlgorithm, OtherPosition, AgentPosition);
             OtherPosition = otherCell;
