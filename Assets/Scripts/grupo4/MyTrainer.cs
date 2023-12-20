@@ -23,6 +23,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using NavigationDJIA.Interfaces;
 using NavigationDJIA.World;
 using QMind.Interfaces;
@@ -44,6 +45,8 @@ namespace Grupo4
         private INavigationAlgorithm _navigationAlgorithm;
         private WorldInfo _worldInfo;
         private int counter = 0;
+
+        public Dictionary<String, Action> QTable;
 
         public void Initialize(QMind.QMindTrainerParams qMindTrainerParams, WorldInfo worldInfo, INavigationAlgorithm navigationAlgorithm)
         {
@@ -70,6 +73,15 @@ namespace Grupo4
             CurrentStep = counter;
             counter += 1;
             Debug.Log("QMindTrainerDummy: DoStep");
+        }
+
+        public void searchState()
+        {
+            //Calculo de los rangos de las distancias
+            int distanceX = Math.Abs(OtherPosition.x - AgentPosition.x);
+            int distanceY = Math.Abs(OtherPosition.y - AgentPosition.y);
+
+
         }
     }
 }
