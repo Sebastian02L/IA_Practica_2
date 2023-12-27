@@ -24,16 +24,19 @@
 
 using System;
 using System.Collections.Generic;
+using Assets.Scripts.grupo4;
 using NavigationDJIA.Interfaces;
 using NavigationDJIA.World;
+using QMind;
 using QMind.Interfaces;
+using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 
 namespace Grupo4
 {
     public class MyTrainer : IQMindTrainer
     {
-        public int CurrentEpisode { get; }
+        public int CurrentEpisode { get; private set; }
         public int CurrentStep { get; private set; }
         public CellInfo AgentPosition { get; private set; }
         public CellInfo OtherPosition { get; private set; }
@@ -44,16 +47,34 @@ namespace Grupo4
 
         private INavigationAlgorithm _navigationAlgorithm;
         private WorldInfo _worldInfo;
+        private QMindTrainerParams _qMindTrainerParams;
         private int counter = 0;
 
-        public Dictionary<String, Action> QTable;
+        //El diccionario QTable representa la tabla Q utilizada para el aprendizaje por refuerzo:
+        //La clave String representa un estado concreto, y el valor Action, la recompensa obtenida por cada una de las 4 acciones en ese estado.
+        private Dictionary<String, Action> QTable;
+
+        System.Random random = new System.Random();
+
+        private float alpha;
+        private float gamma;
+        private float epsilon;
+
+        private int lastAction;
+        private String lastStringedState;
 
         public void Initialize(QMind.QMindTrainerParams qMindTrainerParams, WorldInfo worldInfo, INavigationAlgorithm navigationAlgorithm)
         {
-            Debug.Log("QMindTrainerDummy: initialized");
+            Debug.Log("QMindMyTrainer: initialized");
+
+            QTable = new Dictionary<String, Action>();
+            alpha = qMindTrainerParams.alpha; 
+            gamma = qMindTrainerParams.gamma;
+            epsilon = qMindTrainerParams.epsilon;
 
             _navigationAlgorithm = QMind.Utils.InitializeNavigationAlgo(navigationAlgorithm, worldInfo);
             _worldInfo = worldInfo; 
+            _qMindTrainerParams = qMindTrainerParams;
 
             AgentPosition = worldInfo.RandomCell();
             OtherPosition = worldInfo.RandomCell();
@@ -62,26 +83,90 @@ namespace Grupo4
 
         public void DoStep(bool train)
         {
-            //CellInfo agentCell = QMind.Utils.MoveAgent(1, AgentPosition, _worldInfo);
-            //AgentPosition = agentCell;
+            QState currentState = new QState(AgentPosition, OtherPosition, _worldInfo);
+            String stringedState = currentState.GetState();
 
-            //OnEpisodeStarted?.Invoke(this, EventArgs.Empty);
+            if (!QTable.ContainsKey(stringedState))
+            {
+                QTable.Add(stringedState, new Action());
+            }
+
+            CheckTerminalAndRewards(lastStringedState, lastAction, stringedState);
+
+            lastStringedState = stringedState;
+
+            int action = SelectAction(stringedState);
+            lastAction = action;
+
+            CellInfo agentCell = QMind.Utils.MoveAgent(action, AgentPosition, _worldInfo);
+            AgentPosition = agentCell;
 
             CellInfo otherCell = QMind.Utils.MoveOther(_navigationAlgorithm, OtherPosition, AgentPosition);
-            OtherPosition = otherCell;
+            if (otherCell != null) 
+            {
+                OtherPosition = otherCell;
+            }
 
             CurrentStep = counter;
             counter += 1;
             Debug.Log("QMindTrainerDummy: DoStep");
         }
 
-        public void searchState()
+        public int SelectAction(String stringedState)
         {
-            //Calculo de los rangos de las distancias
-            int distanceX = Math.Abs(OtherPosition.x - AgentPosition.x);
-            int distanceY = Math.Abs(OtherPosition.y - AgentPosition.y);
+            int action;
 
+            float randomNumber = (float) random.NextDouble(); //Obtiene un número aleatorio entre 0 y 1, ambos incluidos
 
+            if(randomNumber > _qMindTrainerParams.epsilon)
+            {
+                action = QTable[stringedState].GetBestAction();
+            }
+            else
+            {
+                action = random.Next(0, 4);
+            }
+
+            return action;
+        }
+
+        public void CheckTerminalAndRewards(String lastStringedState, int lastAction, String stringedState)
+        {
+            //Comprobamos si se trata de un estado terminal
+            if (AgentPosition.Equals(OtherPosition) || !AgentPosition.Walkable)
+            {
+                switch (lastAction)
+                {
+                    case 0:
+                        QTable[lastStringedState].northValue = (1 - alpha) * QTable[lastStringedState].northValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
+                        break;
+                    case 1:
+                        QTable[stringedState].eastValue = (1 - alpha) * QTable[lastStringedState].eastValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
+                        break;
+                    case 2:
+                        QTable[stringedState].southValue = (1 - alpha) * QTable[lastStringedState].southValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
+                        break;
+                    case 3:
+                        QTable[stringedState].westValue = (1 - alpha) * QTable[lastStringedState].westValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
+                        break;
+                }
+
+                ResetEpisode();
+            }
+        }
+
+        public void ResetEpisode()
+        {
+            CurrentEpisode += 1;
+            CurrentStep = 0;
+            counter = 0;
+            AgentPosition = _worldInfo.RandomCell();
+            OtherPosition = _worldInfo.RandomCell();
+
+            Debug.Log("Posiciones asignadas");
+
+            OnEpisodeFinished?.Invoke(this, EventArgs.Empty);
+            OnEpisodeStarted?.Invoke(this, EventArgs.Empty);
         }
     }
 }
