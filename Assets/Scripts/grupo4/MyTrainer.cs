@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Assets.Scripts.grupo4;
 using NavigationDJIA.Interfaces;
 using NavigationDJIA.World;
@@ -50,27 +51,22 @@ namespace Grupo4
         private QMindTrainerParams _qMindTrainerParams;
         private int counter = 0;
 
+        private int saveEpisode = 0;
+
         //El diccionario QTable representa la tabla Q utilizada para el aprendizaje por refuerzo:
-        //La clave String representa un estado concreto, y el valor Action, la recompensa obtenida por cada una de las 4 acciones en ese estado.
-        private Dictionary<String, Action> QTable;
+        //La clave string representa un estado concreto, y el valor Action, la recompensa obtenida por cada una de las 4 acciones en ese estado.
+        private Dictionary<string, Action> QTable;
 
         System.Random random = new System.Random();
 
-        private float alpha;
-        private float gamma;
-        private float epsilon;
-
         private int lastAction;
-        private String lastStringedState;
+        private string lastStringedState;
 
         public void Initialize(QMind.QMindTrainerParams qMindTrainerParams, WorldInfo worldInfo, INavigationAlgorithm navigationAlgorithm)
         {
             Debug.Log("QMindMyTrainer: initialized");
 
-            QTable = new Dictionary<String, Action>();
-            alpha = qMindTrainerParams.alpha; 
-            gamma = qMindTrainerParams.gamma;
-            epsilon = qMindTrainerParams.epsilon;
+            QTable = new Dictionary<string, Action>();
 
             _navigationAlgorithm = QMind.Utils.InitializeNavigationAlgo(navigationAlgorithm, worldInfo);
             _worldInfo = worldInfo; 
@@ -84,14 +80,53 @@ namespace Grupo4
         public void DoStep(bool train)
         {
             QState currentState = new QState(AgentPosition, OtherPosition, _worldInfo);
-            String stringedState = currentState.GetState();
+            string stringedState = currentState.GetState();
 
             if (!QTable.ContainsKey(stringedState))
             {
                 QTable.Add(stringedState, new Action());
             }
 
-            CheckTerminalAndRewards(lastStringedState, lastAction, stringedState);
+            bool terminalState = false;
+
+            if (lastStringedState != null)
+            {
+                if (CheckTerminal(lastStringedState, lastAction, stringedState))
+                {
+                    terminalState = true;
+                }
+
+                if (terminalState)
+                {
+                    return;
+                }
+
+                if (!terminalState)
+                {
+                    UpdateWithRewards(lastStringedState, lastAction, stringedState, 0);
+                }
+
+                if(saveEpisode == _qMindTrainerParams.episodesBetweenSaves)
+                {
+                    saveEpisode = 0;
+                    SaveAsCSV(QTable, "Datos.csv");
+                }
+            }
+
+            if((CurrentEpisode == 500 && CurrentStep == 0))
+            {
+                _qMindTrainerParams.epsilon = 0.4f;
+            }
+
+            if ((CurrentEpisode == 1000 && CurrentStep == 0))
+            {
+                _qMindTrainerParams.epsilon = 0.2f;
+            }
+
+            if ((CurrentEpisode == 1500 && CurrentStep == 0))
+            {
+                _qMindTrainerParams.epsilon = 0.0f;
+            }
 
             lastStringedState = stringedState;
 
@@ -112,11 +147,11 @@ namespace Grupo4
             Debug.Log("QMindTrainerDummy: DoStep");
         }
 
-        public int SelectAction(String stringedState)
+        public int SelectAction(string stringedState)
         {
             int action;
 
-            float randomNumber = (float) random.NextDouble(); //Obtiene un número aleatorio entre 0 y 1, ambos incluidos
+            float randomNumber = (float) random.NextDouble(); //Obtiene un número aleatorio entre 0 y 1, excluyendo el 1.
 
             if(randomNumber > _qMindTrainerParams.epsilon)
             {
@@ -124,42 +159,52 @@ namespace Grupo4
             }
             else
             {
-                action = random.Next(0, 4);
+                action = random.Next(0, 4); //Obtiene un número aleatorio entre 0 y 3, ambos incluidos.
             }
 
             return action;
         }
 
-        public void CheckTerminalAndRewards(String lastStringedState, int lastAction, String stringedState)
+        public void UpdateWithRewards(string lastStringedState, int lastAction, string stringedState, float reward)
+        {
+            switch (lastAction)
+            {
+                case 0:
+                    QTable[lastStringedState].northValue = (1 - _qMindTrainerParams.alpha) * QTable[lastStringedState].northValue + _qMindTrainerParams.alpha * (reward + _qMindTrainerParams.gamma * QTable[stringedState].GetBestActionValue());
+                    break;
+                case 1:
+                    QTable[lastStringedState].eastValue = (1 - _qMindTrainerParams.alpha) * QTable[lastStringedState].eastValue + _qMindTrainerParams.alpha * (reward + _qMindTrainerParams.gamma * QTable[stringedState].GetBestActionValue());
+                    break;
+                case 2:
+                    QTable[lastStringedState].southValue = (1 - _qMindTrainerParams.alpha) * QTable[lastStringedState].southValue + _qMindTrainerParams.alpha * (reward + _qMindTrainerParams.gamma * QTable[stringedState].GetBestActionValue());
+                    break;
+                case 3:
+                    QTable[lastStringedState].westValue = (1 - _qMindTrainerParams.alpha) * QTable[lastStringedState].westValue + _qMindTrainerParams.alpha * (reward + _qMindTrainerParams.gamma * QTable[stringedState].GetBestActionValue());
+                    break;
+            }
+        }
+
+        public bool CheckTerminal(string lastStringedState, int lastAction, string stringedState)
         {
             //Comprobamos si se trata de un estado terminal
             if (AgentPosition.Equals(OtherPosition) || !AgentPosition.Walkable)
             {
-                switch (lastAction)
-                {
-                    case 0:
-                        QTable[lastStringedState].northValue = (1 - alpha) * QTable[lastStringedState].northValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
-                        break;
-                    case 1:
-                        QTable[stringedState].eastValue = (1 - alpha) * QTable[lastStringedState].eastValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
-                        break;
-                    case 2:
-                        QTable[stringedState].southValue = (1 - alpha) * QTable[lastStringedState].southValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
-                        break;
-                    case 3:
-                        QTable[stringedState].westValue = (1 - alpha) * QTable[lastStringedState].westValue + alpha * (-100 + gamma * QTable[stringedState].GetBestActionValue());
-                        break;
-                }
-
+                UpdateWithRewards(lastStringedState, lastAction, stringedState, -100);
                 ResetEpisode();
+                return true;
             }
+
+            return false;
         }
 
         public void ResetEpisode()
         {
             CurrentEpisode += 1;
+            saveEpisode += 1;
             CurrentStep = 0;
             counter = 0;
+            lastStringedState = null;
+            lastAction = -1;
             AgentPosition = _worldInfo.RandomCell();
             OtherPosition = _worldInfo.RandomCell();
 
@@ -167,6 +212,22 @@ namespace Grupo4
 
             OnEpisodeFinished?.Invoke(this, EventArgs.Empty);
             OnEpisodeStarted?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void SaveAsCSV(Dictionary<string, Action> data, string path)
+        {
+            using (StreamWriter sw = new StreamWriter(path))
+            {
+                sw.WriteLine("StateKey, North, East, South, West");
+
+                foreach(var keyValue in data)
+                {
+                    string line = $"{keyValue.Key};{string.Join(";", keyValue.Value.northValue)};{string.Join(";", keyValue.Value.eastValue)};{string.Join(";", keyValue.Value.southValue)};{string.Join(";", keyValue.Value.westValue)}";
+                    sw.WriteLine(line);
+                }
+            }
+
+            Debug.Log($"Datos guardados en la ruta: {path}");
         }
     }
 }
