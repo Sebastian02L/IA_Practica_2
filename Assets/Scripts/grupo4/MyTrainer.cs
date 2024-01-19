@@ -63,7 +63,7 @@ namespace Grupo4
 
         public void Initialize(QMind.QMindTrainerParams qMindTrainerParams, WorldInfo worldInfo, INavigationAlgorithm navigationAlgorithm)
         {
-            Debug.Log("QMindMyTrainer: initialized");
+            Debug.Log("MyTrainer: initialized");
 
             QTable = new Dictionary<string, Action>();
 
@@ -119,7 +119,7 @@ namespace Grupo4
                 if(saveEpisode == _qMindTrainerParams.episodesBetweenSaves)
                 {
                     saveEpisode = 0; //Reseteamos el contador de episodios hasta guardar
-                    SaveAsCSV(QTable, "Datos.csv"); //Guardamos la tabla Q en formato .csv
+                    SaveAsCSV(QTable, ".\\Assets\\Scripts\\grupo4\\Datos.csv"); //Guardamos la tabla Q en formato .csv
                 }
             }
 
@@ -161,7 +161,7 @@ namespace Grupo4
 
             CurrentStep++; //Incrementamos el paso
 
-            Debug.Log("QMindTrainerDummy: DoStep");
+            Debug.Log("MyTrainer: DoStep");
         }
 
         //Se selecciona una acción (aleatoria o la mejor de un estado dado en función de la tasa de exploración)
@@ -245,7 +245,7 @@ namespace Grupo4
             //Utilizamos un StreamWriter en una ruta
             using (StreamWriter sw = new StreamWriter(path))
             {
-                //El writer escribe una primera línea para los títulos de la tabla
+                //El writer escribe una primera línea para los títulos de la tabla en formato CSV
                 sw.WriteLine("StateKey; North; East; South; West");
 
                 foreach(var keyValue in data) //Para cada clave del diccionario
