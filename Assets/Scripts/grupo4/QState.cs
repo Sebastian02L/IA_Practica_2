@@ -187,6 +187,12 @@ namespace Assets.Scripts.grupo4
             state = distanceToOtherX.ToString() + distanceToOtherY.ToString() + otherPositionFromAgent.ToString() + walkable.ToString();
         }
 
+        //Constructor alternativo para crear un objeto QState a partir de una cadena de identificación del estado
+        public QState(string state)
+        {
+            this.state = state;
+        }
+
         //Getter para el identificador
         public string GetState()
         {

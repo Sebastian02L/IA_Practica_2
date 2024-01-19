@@ -22,6 +22,15 @@ public class Action
         this.westValue = 0;
     }
 
+    //Constructor alternativo para crear un objeto Action en base a 4 valores de calidad
+    public Action(float northValue, float eastValue, float southValue, float westValue)
+    {
+        this.northValue = northValue;
+        this.eastValue = eastValue;
+        this.southValue = southValue;
+        this.westValue = westValue;
+    }
+
     //Comprueba cual es la mejor acción del estado y la devuelve.
     public int GetBestAction()
     {

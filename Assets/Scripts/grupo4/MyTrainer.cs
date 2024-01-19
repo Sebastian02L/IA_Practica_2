@@ -63,8 +63,6 @@ namespace Grupo4
 
         public void Initialize(QMind.QMindTrainerParams qMindTrainerParams, WorldInfo worldInfo, INavigationAlgorithm navigationAlgorithm)
         {
-            Debug.Log("MyTrainer: initialized");
-
             QTable = new Dictionary<string, Action>();
 
             _navigationAlgorithm = QMind.Utils.InitializeNavigationAlgo(navigationAlgorithm, worldInfo);
@@ -75,6 +73,8 @@ namespace Grupo4
             AgentPosition = worldInfo.RandomCell();
             OtherPosition = worldInfo.RandomCell();
             OnEpisodeStarted?.Invoke(this, EventArgs.Empty);
+
+            Debug.Log("MyTrainer: initialized");
         }
 
         //La realización de un paso
@@ -116,25 +116,25 @@ namespace Grupo4
                 }
 
                 //Si hemos llegado al número de episodios en el que debemos guardar
-                if(saveEpisode == _qMindTrainerParams.episodesBetweenSaves)
+                if(saveEpisode >= _qMindTrainerParams.episodesBetweenSaves)
                 {
                     saveEpisode = 0; //Reseteamos el contador de episodios hasta guardar
-                    SaveAsCSV(QTable, ".\\Assets\\Scripts\\grupo4\\Datos.csv"); //Guardamos la tabla Q en formato .csv
+                    SaveAsCSV(".\\Assets\\Scripts\\grupo4\\Datos.csv"); //Guardamos la tabla Q en formato .csv
                 }
             }
 
             //Se realiza una disminución progresiva de la tasa de exploración para favorecer el entrenamiento
-            if((CurrentEpisode == 500 && CurrentStep == 0))
+            if((CurrentEpisode == 2000 && CurrentStep == 0))
             {
                 _qMindTrainerParams.epsilon = 0.4f;
             }
 
-            if ((CurrentEpisode == 1000 && CurrentStep == 0))
+            if ((CurrentEpisode == 4000 && CurrentStep == 0))
             {
                 _qMindTrainerParams.epsilon = 0.2f;
             }
 
-            if ((CurrentEpisode == 1500 && CurrentStep == 0))
+            if ((CurrentEpisode == 6000 && CurrentStep == 0))
             {
                 _qMindTrainerParams.epsilon = 0.0f;
             }
@@ -240,7 +240,7 @@ namespace Grupo4
         }
 
         //Método para guardar el diccionario de la tabla Q en formato CSV en una ruta especificada.
-        public void SaveAsCSV(Dictionary<string, Action> data, string path)
+        public void SaveAsCSV(string path)
         {
             //Utilizamos un StreamWriter en una ruta
             using (StreamWriter sw = new StreamWriter(path))
@@ -248,7 +248,7 @@ namespace Grupo4
                 //El writer escribe una primera línea para los títulos de la tabla en formato CSV
                 sw.WriteLine("StateKey; North; East; South; West");
 
-                foreach(var keyValue in data) //Para cada clave del diccionario
+                foreach(var keyValue in QTable) //Para cada clave del diccionario
                 {
                     //Creamos la línea en formato CSV y la escribimos en el fichero. Una por fila
                     string line = $"{keyValue.Key};{keyValue.Value.northValue};{keyValue.Value.eastValue};{keyValue.Value.southValue};{keyValue.Value.westValue}";
