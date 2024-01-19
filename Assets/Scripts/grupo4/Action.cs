@@ -11,6 +11,8 @@ public class Action
     public float southValue; //2
     public float westValue; //3
 
+    //Los enteros de 0-3 codifican la acción para su fácil utilización en el trainer.
+
     //Métodos//
     public Action() //El constructor inicializa a 0 la recompensa por cada acción en un nuevo estado.
     {
@@ -20,6 +22,7 @@ public class Action
         this.westValue = 0;
     }
 
+    //Comprueba cual es la mejor acción del estado y la devuelve.
     public int GetBestAction()
     {
         float maxValue = float.MinValue;
@@ -52,6 +55,7 @@ public class Action
         return bestAction;
     }
 
+    //Devuelve el valor de recompensa de la mejor acción.
     public float GetBestActionValue()
     {
         switch (GetBestAction())

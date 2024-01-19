@@ -21,11 +21,13 @@ namespace Assets.Scripts.grupo4
 
         private int otherPositionFromAgent; //Representa si el jugador se encuentra al norte, sur, este, oeste o igual, respecto al agente
 
-        private int walkable; //Representa las situaciones posibles caminables en las que se encuentra el agente
+        private int walkable; //Representa las situaciones posibles caminables en las que se puede encontrar el agente
 
         //Métodos//
+        //Constructor de la clase QState. Codifica los estados a partir de la posición del agente, del jugador, y de las celdas caminables.
         public QState(CellInfo agentPosition, CellInfo otherPosition, WorldInfo worldInfo)
         {
+            //Codificación distancia en el eje X
             int distanceX = Math.Abs(otherPosition.x - agentPosition.x);
 
             if (0 <= distanceX && distanceX <= 6)
@@ -43,6 +45,7 @@ namespace Assets.Scripts.grupo4
                 Debug.Log("Hubo un problema a la hora de determinar la distancia en X a other");
             }
 
+            //Codificación distancia en el eje y
             int distanceY = Math.Abs(otherPosition.y - agentPosition.y);
 
             if (0 <= distanceY && distanceY <= 6)
@@ -62,6 +65,7 @@ namespace Assets.Scripts.grupo4
                 Debug.Log("Hubo un problema a la hora de determinar la distancia en Y a other");
             }
 
+            //Codificación posición del jugador respecto del agente
             if (otherPosition.y > agentPosition.y && otherPosition.x == agentPosition.x)
             {
                 otherPositionFromAgent = 0; //NORTE
@@ -103,6 +107,7 @@ namespace Assets.Scripts.grupo4
                 Debug.Log("Hubo un error a la hora de determinar la posición de other respecto de la del agente");
             }
 
+            //Codificación de la situación caminable
             CellInfo topCell;
             CellInfo bottomCell;
             CellInfo rightCell;
@@ -178,9 +183,11 @@ namespace Assets.Scripts.grupo4
                 Debug.Log("Hubo un problema al determinar la situación caminable");
             }
 
+            //Identificador único de cada estado
             state = distanceToOtherX.ToString() + distanceToOtherY.ToString() + otherPositionFromAgent.ToString() + walkable.ToString();
         }
 
+        //Getter para el identificador
         public string GetState()
         {
             return state;
